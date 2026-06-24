@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "CarMarketplace",
+    "slug": "CarMarketplace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "scheme": "carmarketplace",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L'application accède à vos photos pour vous permettre de publier des annonces de voitures.",
+          "cameraPermission": "L'application accède à votre appareil photo pour vous permettre de prendre des photos de votre véhicule."
+        }
+      ],
+      "expo-video",
+      "expo-secure-store"
+    ]
+  }
+}
