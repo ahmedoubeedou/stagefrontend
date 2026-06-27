@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { login, register } from '../services/api';
+import { login, register, getMe, logout } from '../services/api';
 
 export const AuthContext = createContext();
 
@@ -20,14 +20,27 @@ export const AuthProvider = ({ children }) => {
           const parsedUser = JSON.parse(storedUser);
           setUser({ id: parsedUser.id, name: parsedUser.name, email: parsedUser.email });
 
-          // TODO: BACKEND INTEGRATION — Phase 2 : valider le token et récupérer le profil frais
-          // Exemple : const response = await API.get('/user/me');
-          // setUser(response.data.data);
+          // Verify and retrieve fresh profile from backend
+          try {
+            const response = await getMe();
+            if (response.data?.status === 'success') {
+              setUser(response.data.data);
+            } else {
+              throw new Error('Invalid token');
+            }
+          } catch (apiError) {
+            // Clean up invalid session
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('user');
+            setUser(null);
+            router.replace('/(public)');
+          }
         }
       } catch (e) {
         // En cas d'erreur de parsing/stockage, effacer les données corrompues
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('user');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -81,7 +94,16 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       let errMsg = "L'inscription a échoué. Veuillez réessayer.";
-      if (error.response?.data?.message) {
+      if (error.response?.data?.errors) {
+        const errorsObj = error.response.data.errors;
+        const firstField = Object.keys(errorsObj)[0];
+        const fieldErrors = errorsObj[firstField];
+        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          errMsg = fieldErrors[0];
+        } else {
+          errMsg = error.response.data.message || errMsg;
+        }
+      } else if (error.response?.data?.message) {
         errMsg = error.response.data.message;
       }
       return { success: false, error: errMsg };
@@ -97,6 +119,11 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     setIsLoading(true);
     try {
+      try {
+        await logout();
+      } catch (err) {
+        // Suppress server logout errors to ensure client-side logout completes
+      }
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       setUser(null);

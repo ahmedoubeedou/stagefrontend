@@ -81,7 +81,11 @@ export default function AddCarScreen() {
             setValue('description', car.description || '');
           }
         } catch (error) {
-          Alert.alert('Erreur', 'Impossible de charger les détails du véhicule.');
+          if (Platform.OS === 'web') {
+            window.alert('Impossible de charger les détails du véhicule.');
+          } else {
+            Alert.alert('Erreur', 'Impossible de charger les détails du véhicule.');
+          }
         } finally {
           setLoadingCar(false);
         }
@@ -92,10 +96,11 @@ export default function AddCarScreen() {
 
   const onSubmit = async (values) => {
     if (images.length === 0) {
-      Alert.alert(
-        'Photos requises',
-        'Veuillez sélectionner au moins une photo du véhicule pour publier votre annonce.'
-      );
+      if (Platform.OS === 'web') {
+        window.alert('Veuillez sélectionner au moins une photo du véhicule pour publier votre annonce.');
+      } else {
+        Alert.alert('Photos requises', 'Veuillez sélectionner au moins une photo du véhicule pour publier votre annonce.');
+      }
       return;
     }
 
@@ -126,37 +131,49 @@ export default function AddCarScreen() {
       };
 
       formData.append('fuel_type', FUEL_TO_BACKEND[selectedFuel] || 'gasoline');
-      formData.append('fuel', selectedFuel); // For mock API compatibility
       formData.append('transmission', TRANSMISSION_TO_BACKEND[selectedTransmission] || 'automatic');
 
+      // Helper: convert a blob/local URI to a File object (needed for web)
+      const uriToFile = async (uri, fileName, mimeType) => {
+        if (Platform.OS === 'web') {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          return new File([blob], fileName, { type: mimeType });
+        }
+        // On native, return the RN-style object
+        return { uri, type: mimeType, name: fileName };
+      };
+
       // Images
-      images.forEach((img, i) => {
-        if (img.uri.startsWith('http://') || img.uri.startsWith('https://')) {
-          formData.append('images[]', img.uri);
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        // Skip images that are already on the server (URL strings from editing)
+        if (typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))) {
+          formData.append('images[]', img);
+          continue;
+        }
+        const uri = img.uri || img;
+        if (uri.startsWith('http://') || uri.startsWith('https://')) {
+          formData.append('images[]', uri);
         } else {
-          const ext = img.uri.split('.').pop().toLowerCase().split('?')[0];
+          const ext = uri.split('.').pop().toLowerCase().split('?')[0] || 'jpg';
           const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
           const fileName = `photo_${i}.${ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpg'}`;
-          formData.append('images[]', {
-            uri: img.uri,
-            type: mimeType,
-            name: fileName,
-          });
+          const file = await uriToFile(uri, fileName, mimeType);
+          formData.append('images[]', file);
         }
-      });
+      }
 
       // Vidéo
       if (video) {
-        if (video.uri.startsWith('http://') || video.uri.startsWith('https://')) {
-          formData.append('video', video.uri);
+        const uri = video.uri || video;
+        if (uri.startsWith('http://') || uri.startsWith('https://')) {
+          formData.append('video', uri);
         } else {
-          const ext = video.uri.split('.').pop().toLowerCase().split('?')[0];
+          const ext = uri.split('.').pop().toLowerCase().split('?')[0] || 'mp4';
           const mimeType = ext === 'mov' ? 'video/quicktime' : 'video/mp4';
-          formData.append('video', {
-            uri: video.uri,
-            type: mimeType,
-            name: `presentation.${ext || 'mp4'}`,
-          });
+          const file = await uriToFile(uri, `presentation.${ext}`, mimeType);
+          formData.append('video', file);
         }
       } else if (isEditing) {
         formData.append('video', 'delete');
@@ -164,10 +181,8 @@ export default function AddCarScreen() {
 
       let response;
       if (isEditing) {
-        // TODO: BACKEND INTEGRATION — PUT /api/cars/:id avec FormData
         response = await updateCar(params.carId, formData);
       } else {
-        // TODO: BACKEND INTEGRATION — POST /api/cars avec FormData
         response = await addCar(formData);
       }
 
@@ -187,10 +202,14 @@ export default function AddCarScreen() {
         throw new Error('Réponse invalide du serveur');
       }
     } catch (error) {
-      Alert.alert(
-        'Erreur de publication',
-        "Une erreur est survenue lors de la publication de votre annonce. Veuillez vérifier votre connexion et réessayer."
-      );
+      const detail = error?.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join('\n')
+        : error?.response?.data?.message || 'Veuillez vérifier votre connexion et réessayer.';
+      if (Platform.OS === 'web') {
+        window.alert(`Erreur de publication\n\n${detail}`);
+      } else {
+        Alert.alert('Erreur de publication', detail);
+      }
     } finally {
       setSubmitting(false);
     }

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../../src/context/AuthContext';
@@ -66,39 +67,64 @@ export default function DashboardScreen() {
   };
 
   const handleDeleteListing = (id, carName) => {
-    Alert.alert(
-      "Supprimer l'annonce",
-      `Êtes-vous sûr de vouloir supprimer l'annonce "${carName}" ? Cette action est irréversible.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive', // CORRIGÉ : était "red" (invalide)
-          onPress: async () => {
-            try {
-              const response = await deleteCar(id);
-              if (response.data?.status === 'success') {
-                setUserCars((prev) => prev.filter((car) => car.id !== id));
-                Alert.alert('✅ Supprimée', 'Votre annonce a été supprimée avec succès.');
-              }
-            } catch (err) {
-              Alert.alert('Erreur', 'Impossible de supprimer cette annonce. Veuillez réessayer.');
-            }
+    const message = `Êtes-vous sûr de vouloir supprimer l'annonce "${carName}" ? Cette action est irréversible.`;
+    
+    const performDelete = async () => {
+      try {
+        const response = await deleteCar(id);
+        if (response.data?.status === 'success') {
+          setUserCars((prev) => prev.filter((car) => car.id !== id));
+          if (Platform.OS === 'web') {
+            window.alert('Votre annonce a été supprimée avec succès.');
+          } else {
+            Alert.alert('✅ Supprimée', 'Votre annonce a été supprimée avec succès.');
+          }
+        }
+      } catch (err) {
+        if (Platform.OS === 'web') {
+          window.alert('Impossible de supprimer cette annonce. Veuillez réessayer.');
+        } else {
+          Alert.alert('Erreur', 'Impossible de supprimer cette annonce. Veuillez réessayer.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        "Supprimer l'annonce",
+        message,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Supprimer',
+            style: 'destructive',
+            onPress: performDelete,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Déconnecter', style: 'destructive', onPress: signOut },
-      ]
-    );
+    const message = 'Êtes-vous sûr de vouloir vous déconnecter ?';
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        signOut();
+      }
+    } else {
+      Alert.alert(
+        'Déconnexion',
+        message,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Déconnecter', style: 'destructive', onPress: signOut },
+        ]
+      );
+    }
   };
 
   const totalValue = userCars.reduce((sum, car) => sum + (car.price || 0), 0);

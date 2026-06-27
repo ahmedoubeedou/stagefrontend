@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useRouter } from 'expo-router';
@@ -106,12 +107,13 @@ export default function LoginScreen() {
               <Text style={styles.label}>Mot de passe</Text>
               {/* TODO: BACKEND INTEGRATION — Activer le lien "Mot de passe oublié" → POST /api/password/reset */}
               <TouchableOpacity
-                onPress={() =>
-                  Alert.alert(
-                    'Réinitialisation',
-                    'La réinitialisation du mot de passe sera disponible prochainement.'
-                  )
-                }
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    window.alert('La réinitialisation du mot de passe sera disponible prochainement.');
+                  } else {
+                    Alert.alert('Réinitialisation', 'La réinitialisation du mot de passe sera disponible prochainement.');
+                  }
+                }}
               >
                 <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
               </TouchableOpacity>
@@ -146,7 +148,7 @@ export default function LoginScreen() {
                     style={styles.eyeBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text style={styles.eyeText}>{secureText ? '👁️' : '🙈'}</Text>
+                    <Text style={styles.eyeText}>{secureText ? '●' : '○'}</Text>
                   </TouchableOpacity>
                 </View>
               )}

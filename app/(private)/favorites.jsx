@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, SafeAreaView, Alert,
+  ActivityIndicator, SafeAreaView, Alert, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getFavorites, removeFavorite } from '../../src/services/api';
@@ -38,25 +38,39 @@ export default function FavoritesScreen() {
   };
 
   const handleRemoveFavorite = async (carId, carName) => {
-    Alert.alert(
-      'Retirer des favoris',
-      `Retirer "${carName}" de vos favoris ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Retirer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeFavorite(carId);
-              setFavorites((prev) => prev.filter((c) => c.id !== carId));
-            } catch (e) {
-              Alert.alert('Erreur', 'Impossible de retirer ce favori. Veuillez réessayer.');
-            }
+    const message = `Retirer "${carName}" de vos favoris ?`;
+
+    const performRemove = async () => {
+      try {
+        await removeFavorite(carId);
+        setFavorites((prev) => prev.filter((c) => c.id !== carId));
+      } catch (e) {
+        if (Platform.OS === 'web') {
+          window.alert('Impossible de retirer ce favori. Veuillez réessayer.');
+        } else {
+          Alert.alert('Erreur', 'Impossible de retirer ce favori. Veuillez réessayer.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        performRemove();
+      }
+    } else {
+      Alert.alert(
+        'Retirer des favoris',
+        message,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Retirer',
+            style: 'destructive',
+            onPress: performRemove,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   if (loading && favorites.length === 0) {
