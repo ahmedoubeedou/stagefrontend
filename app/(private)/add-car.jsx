@@ -10,10 +10,10 @@ import { addCar, updateCar, getCarById } from '../../src/services/api';
 import { FUEL_TYPE_MAP, TRANSMISSION_MAP } from '../../src/utils/helpers';
 import MediaUploader from '../../src/components/MediaUploader';
 
-const FUEL_OPTIONS = ['Essence', 'Diesel', 'Électrique', 'Hybride', 'GPL'];
+const FUEL_OPTIONS = ['Essence', 'Diesel', 'Électrique'];
 const TRANSMISSION_OPTIONS = ['Automatique', 'Manuelle'];
 const FUEL_ICONS = {
-  'Essence': '⛽', 'Diesel': '🛢️', 'Électrique': '⚡', 'Hybride': '🔋', 'GPL': '💨',
+  'Essence': '⛽', 'Diesel': '🛢️', 'Électrique': '⚡',
 };
 
 export default function AddCarScreen() {
@@ -44,6 +44,7 @@ export default function AddCarScreen() {
       color: params.color || '',
       location: params.location || '',
       description: params.description || '',
+      phone: params.phone || '',
     },
   });
 
@@ -79,6 +80,7 @@ export default function AddCarScreen() {
             setValue('color', car.color || '');
             setValue('location', car.location || '');
             setValue('description', car.description || '');
+            setValue('phone', car.seller?.phone || '');
           }
         } catch (error) {
           if (Platform.OS === 'web') {
@@ -117,6 +119,7 @@ export default function AddCarScreen() {
       formData.append('color', values.color.trim());
       formData.append('location', values.location.trim() || 'Nouakchott');
       formData.append('description', values.description.trim());
+      formData.append('phone', values.phone.trim());
       const FUEL_TO_BACKEND = {
         'Essence': 'gasoline',
         'Diesel': 'diesel',
@@ -430,6 +433,33 @@ export default function AddCarScreen() {
               )}
             />
             {errors.location && <Text style={styles.errorText}>⚠ {errors.location.message}</Text>}
+
+            {/* Téléphone de contact */}
+            <Text style={styles.label}>Téléphone de contact <Text style={styles.required}>*</Text></Text>
+            <Controller
+              control={control}
+              name="phone"
+              rules={{
+                required: 'Le numéro de téléphone est requis pour les acheteurs.',
+                pattern: {
+                  value: /^[+0-9\s\-]{6,20}$/,
+                  message: 'Numéro invalide. Ex : +222 XXXXXXXX',
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.phone && styles.inputError]}
+                  placeholder="ex : +222 22 XX XX XX"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="phone-pad"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  returnKeyType="next"
+                />
+              )}
+            />
+            {errors.phone && <Text style={styles.errorText}>⚠ {errors.phone.message}</Text>}
 
             {/* Type de carburant */}
             <Text style={styles.label}>Type de carburant <Text style={styles.required}>*</Text></Text>
