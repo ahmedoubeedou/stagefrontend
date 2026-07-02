@@ -342,7 +342,7 @@ export default function AddCarScreen() {
                 {errors.year && <Text style={styles.errorText}>⚠ {errors.year.message}</Text>}
               </View>
               <View style={styles.halfField}>
-                <Text style={styles.label}>Prix ($) <Text style={styles.required}>*</Text></Text>
+                <Text style={styles.label}>Prix (MRU) <Text style={styles.required}>*</Text></Text>
                 <Controller
                   control={control}
                   name="price"
@@ -353,7 +353,7 @@ export default function AddCarScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput
                       style={[styles.input, errors.price && styles.inputError]}
-                      placeholder="18 500"
+                      placeholder="ex : 450 000"
                       placeholderTextColor="#9ca3af"
                       keyboardType="numeric"
                       onBlur={onBlur}
@@ -362,6 +362,7 @@ export default function AddCarScreen() {
                     />
                   )}
                 />
+                <Text style={styles.currencyHint}>Montant en Ouguiya (MRU)</Text>
                 {errors.price && <Text style={styles.errorText}>⚠ {errors.price.message}</Text>}
               </View>
             </View>
@@ -650,6 +651,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     fontWeight: '500',
+  },
+  currencyHint: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   optionRow: {
     flexDirection: 'row',

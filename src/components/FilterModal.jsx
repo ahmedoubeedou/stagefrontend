@@ -169,7 +169,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters,
 
               {/* Fourchette de prix */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💰 Fourchette de prix (USD)</Text>
+                <Text style={styles.sectionTitle}>💰 Fourchette de prix (MRU)</Text>
                 <View style={styles.inputRangeRow}>
                   <View style={styles.rangeInputWrapper}>
                     <Text style={styles.rangeInputLabel}>Min</Text>

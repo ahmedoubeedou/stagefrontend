@@ -103,8 +103,8 @@ export default function CarListScreen() {
   if (filters.fuel) activeChips.push({ label: `⛽ ${filters.fuel}`, keys: ['fuel'] });
   if (filters.transmission) activeChips.push({ label: `⚙️ ${filters.transmission}`, keys: ['transmission'] });
   if (filters.minPrice || filters.maxPrice) {
-    const min = filters.minPrice ? `${parseInt(filters.minPrice).toLocaleString('fr-FR')} $` : '0 $';
-    const max = filters.maxPrice ? `${parseInt(filters.maxPrice).toLocaleString('fr-FR')} $` : 'Max';
+    const min = filters.minPrice ? `${parseInt(filters.minPrice).toLocaleString('fr-FR')} MRU` : '0 MRU';
+    const max = filters.maxPrice ? `${parseInt(filters.maxPrice).toLocaleString('fr-FR')} MRU` : 'Max';
     activeChips.push({ label: `💰 ${min} – ${max}`, keys: ['minPrice', 'maxPrice'] });
   }
   if (filters.minYear || filters.maxYear) {

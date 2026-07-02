@@ -1,15 +1,13 @@
 /**
- * Formate une valeur numérique en devise (ex: 18 500 $)
+ * Formate une valeur numérique en Ouguiya Mauritanien (ex: 450 000 MRU)
  * @param {number} value
  * @returns {string}
  */
 export const formatPrice = (value) => {
-  if (value === undefined || value === null) return "0 $";
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "USD",
+  if (value === undefined || value === null) return "0 MRU";
+  return `${new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)} MRU`;
 };
 
 /**

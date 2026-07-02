@@ -270,30 +270,45 @@ export default function MediaUploader({ images, setImages, video, setVideo }) {
       {video && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vidéo de présentation</Text>
-          <View style={styles.videoWrapper}>
-            <View style={styles.videoIndicator}>
-              <View style={styles.videoIconWrapper}>
-                <Text style={styles.videoIcon}>🎬</Text>
+          <View style={styles.videoPreviewContainer}>
+            {/* Vignette visuelle de la vidéo */}
+            <View style={styles.videoThumbnail}>
+              <View style={styles.videoThumbnailOverlay}>
+                <View style={styles.playIconCircle}>
+                  <Text style={styles.playIcon}>▶</Text>
+                </View>
               </View>
-              <View style={styles.videoInfo}>
-                <Text style={styles.videoName} numberOfLines={1}>
-                  {video.fileName || `video_presentation.${video.uri.split('.').pop().split('?')[0] || 'mp4'}`}
+              {/* Infos en bas de la vignette */}
+              <View style={styles.videoInfoOverlay}>
+                <Text style={styles.videoFileName} numberOfLines={1}>
+                  {video.fileName || `video_presentation.${(video.uri || '').split('.').pop().split('?')[0] || 'mp4'}`}
                 </Text>
-                <Text style={styles.videoMeta}>
+                <Text style={styles.videoMetaText}>
                   {[
-                    getVideoDuration(video) ? `Durée : ${getVideoDuration(video)}` : null,
-                    formatFileSize(video.fileSize) ? `Taille : ${formatFileSize(video.fileSize)}` : null,
+                    getVideoDuration(video) ? `${getVideoDuration(video)}` : null,
+                    formatFileSize(video.fileSize) ? `${formatFileSize(video.fileSize)}` : null,
                     video.uri && (video.uri.startsWith('http://') || video.uri.startsWith('https://'))
-                      ? '✅ Vidéo enregistrée'
-                      : '✅ Prête à l\'upload',
+                      ? '✅ Enregistrée'
+                      : '✅ Prête',
                   ].filter(Boolean).join('  •  ')}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.removeVideoBtn} onPress={removeVideo}>
-              <Text style={styles.removeVideoBtnText}>Retirer</Text>
+
+            {/* Bouton de suppression ✕ flottant */}
+            <TouchableOpacity
+              style={styles.removeVideoX}
+              onPress={() => setVideo(null)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.removeVideoXText}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Bouton secondaire : choisir une autre vidéo */}
+          <TouchableOpacity style={styles.changeVideoBtn} onPress={pickVideo} activeOpacity={0.8}>
+            <Text style={styles.changeVideoBtnText}>🔄 Changer la vidéo</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -444,59 +459,95 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginTop: 8,
   },
-  videoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f0fdf4',
-    borderRadius: 10,
-    padding: 12,
+  videoPreviewContainer: {
+    position: 'relative',
+    marginBottom: 10,
+  },
+  videoThumbnail: {
+    height: 120,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-  },
-  videoIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  videoIconWrapper: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#d1fae5',
-    borderRadius: 10,
-    alignItems: 'center',
+    borderColor: '#334155',
     justifyContent: 'center',
-    marginRight: 12,
+    alignItems: 'center',
   },
-  videoIcon: {
-    fontSize: 22,
+  videoThumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  videoInfo: {
-    flex: 1,
+  playIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  videoName: {
-    fontSize: 13,
+  playIcon: {
+    color: '#fff',
+    fontSize: 20,
+    marginLeft: 4,
+  },
+  videoInfoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  videoFileName: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  videoMeta: {
-    fontSize: 11,
-    color: '#059669',
+  videoMetaText: {
+    color: '#94a3b8',
+    fontSize: 10,
     fontWeight: '500',
   },
-  removeVideoBtn: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    marginLeft: 10,
+  removeVideoX: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#ef4444',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
   },
-  removeVideoBtnText: {
+  removeVideoXText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  changeVideoBtn: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  changeVideoBtnText: {
     fontSize: 12,
-    color: '#ef4444',
+    color: '#059669',
     fontWeight: '600',
   },
   emptyState: {

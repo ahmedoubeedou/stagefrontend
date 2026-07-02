@@ -374,24 +374,38 @@ export default function CarDetailScreen() {
           {/* Vidéo de présentation */}
           {car.video && <WalkthroughVideo sourceUri={car.video} />}
 
-          {/* Carte vendeur */}
-          <View style={styles.sellerCard}>
-            <Text style={styles.sellerSectionLabel}>VENDEUR</Text>
-            <View style={styles.sellerProfile}>
-              <View style={styles.sellerAvatar}>
-                <Text style={styles.sellerAvatarText}>
-                  {car.seller?.name?.charAt(0).toUpperCase() || 'V'}
-                </Text>
+          {/* Carte vendeur — cliquable pour accéder au profil public (masquée pour le propriétaire) */}
+          {!isOwner && (
+            <TouchableOpacity
+              style={styles.sellerCardTouchable}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (car.user_id) {
+                  router.push(`/(public)/seller/${car.user_id}`);
+                }
+              }}
+            >
+              <View style={styles.sellerCard}>
+                <Text style={styles.sellerSectionLabel}>VENDEUR</Text>
+                <View style={styles.sellerProfile}>
+                  <View style={styles.sellerAvatar}>
+                    <Text style={styles.sellerAvatarText}>
+                      {car.seller?.name?.charAt(0).toUpperCase() || 'V'}
+                    </Text>
+                  </View>
+                  <View style={styles.sellerInfo}>
+                    <Text style={styles.sellerName}>{car.seller?.name || 'Vendeur'}</Text>
+                    <Text style={styles.sellerSubtitle}>Vendeur vérifié • {car.location}</Text>
+                    {car.seller?.phone && (
+                      <Text style={styles.sellerPhone}>📞 {car.seller.phone}</Text>
+                    )}
+                  </View>
+                  <Text style={styles.sellerChevron}>›</Text>
+                </View>
+                <Text style={styles.sellerViewProfile}>Voir le profil et toutes les annonces</Text>
               </View>
-              <View style={styles.sellerInfo}>
-                <Text style={styles.sellerName}>{car.seller?.name || 'Vendeur'}</Text>
-                <Text style={styles.sellerSubtitle}>Vendeur vérifié • {car.location}</Text>
-                {car.seller?.phone && (
-                  <Text style={styles.sellerPhone}>📞 {car.seller.phone}</Text>
-                )}
-              </View>
-            </View>
-          </View>
+            </TouchableOpacity>
+          )}
 
           {/* Point d'intégration backend */}
           {/* TODO: BACKEND INTEGRATION — Afficher ici : évaluations vendeur, nombre d'annonces, date d'inscription */}
@@ -670,6 +684,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     overflow: 'hidden',
   },
+  sellerCardTouchable: {
+    borderRadius: 16,
+  },
   sellerCard: {
     backgroundColor: '#f9fafb',
     borderRadius: 16,
@@ -725,6 +742,19 @@ const styles = StyleSheet.create({
     color: '#1e3a8a',
     fontWeight: '600',
     marginTop: 4,
+  },
+  sellerChevron: {
+    fontSize: 24,
+    color: '#9ca3af',
+    fontWeight: '300',
+    marginLeft: 8,
+  },
+  sellerViewProfile: {
+    fontSize: 11,
+    color: '#1e3a8a',
+    fontWeight: '600',
+    marginTop: 12,
+    textDecorationLine: 'underline',
   },
   bottomBar: {
     position: 'absolute',

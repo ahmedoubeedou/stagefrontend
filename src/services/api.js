@@ -72,6 +72,7 @@ export const getCars = async (filters = {}) => {
   if (filters.maxPrice)     params.max_price = filters.maxPrice;
   if (filters.minYear)      params.min_year = filters.minYear;
   if (filters.maxYear)      params.max_year = filters.maxYear;
+  if (filters.user_id)      params.user_id = filters.user_id; // Profil vendeur public
 
   const response = await API.get('/cars', { params });
 
@@ -111,6 +112,14 @@ export const getUserCars = async () => {
 export const deleteCar = async (id) => {
   return API.delete(`/cars/${id}`);
 };
+
+/**
+ * GET /api/seller/{id} — Profil public d'un vendeur
+ */
+export const getSellerProfile = async (id) => {
+  return API.get(`/seller/${id}`);
+};
+
 
 // ==========================================
 // Favorites (Persistent in DB via API)
