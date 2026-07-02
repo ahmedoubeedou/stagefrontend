@@ -5,7 +5,7 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getCarById, addFavorite, removeFavorite, isFavorite } from '../../../src/services/api';
+import { getCarById, addFavorite, removeFavorite, isFavorite, deleteCar } from '../../../src/services/api';
 import { formatPrice, formatMileage, formatDate, FUEL_TYPE_MAP, TRANSMISSION_MAP } from '../../../src/utils/helpers';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { AuthContext } from '../../../src/context/AuthContext';
@@ -46,6 +46,9 @@ export default function CarDetailScreen() {
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [imageError, setImageError] = useState({});
+
+  // Vérification de propriété : est-ce que l'utilisateur connecté est le vendeur ?
+  const isOwner = user && car ? Number(user.id) === Number(car.user_id) : false;
 
   useEffect(() => {
     async function loadCar() {
@@ -109,10 +112,11 @@ export default function CarDetailScreen() {
   };
 
   const handleCall = () => {
-    if (car?.seller?.phone) {
-      const clean = car.seller.phone.replace(/\s+/g, '');
+    const phone = car?.contact_phone || car?.seller?.phone;
+    if (phone) {
+      const clean = phone.replace(/\s+/g, '');
       Linking.openURL(`tel:${clean}`).catch(() =>
-        Alert.alert('Erreur', `Impossible d'appeler le ${car.seller.phone}`)
+        Alert.alert('Erreur', `Impossible d'appeler le ${phone}`)
       );
     } else {
       Alert.alert('Non disponible', 'Le numéro du vendeur n\'est pas disponible.');
@@ -120,15 +124,63 @@ export default function CarDetailScreen() {
   };
 
   const handleMessage = () => {
-    if (car?.seller?.phone) {
-      const clean = car.seller.phone.replace(/\s+/g, '');
-      const text = `Bonjour ${car.seller.name}, je suis intéressé(e) par votre ${car.brand} ${car.model} ${car.year} (annonce réf. ${id}).`;
+    const phone = car?.contact_phone || car?.seller?.phone;
+    if (phone) {
+      const clean = phone.replace(/\s+/g, '');
+      const text = `Bonjour, je suis intéressé(e) par votre ${car.brand} ${car.model} ${car.year} (annonce réf. ${id}).`;
       Linking.openURL(`sms:${clean}?body=${encodeURIComponent(text)}`).catch(() =>
         Alert.alert('Erreur', "Impossible d'ouvrir l'application de messagerie.")
       );
     } else {
       Alert.alert('Non disponible', 'Les coordonnées du vendeur ne sont pas disponibles.');
     }
+  };
+
+  // Navigation vers l'écran de modification (propriétaire uniquement)
+  const handleEdit = () => {
+    router.push({
+      pathname: '/(private)/add-car',
+      params: {
+        carId: car.id,
+        brand: car.brand,
+        model: car.model,
+        year: String(car.year),
+        price: String(car.price),
+        mileage: String(car.mileage),
+        color: car.color || '',
+        fuel: car.fuel_type || car.fuel || 'gasoline',
+        transmission: car.transmission || 'automatic',
+        description: car.description || '',
+        location: car.location || '',
+        phone: car.contact_phone || '',
+      },
+    });
+  };
+
+  // Suppression de l'annonce (propriétaire uniquement)
+  const handleDelete = () => {
+    const carName = `${car.brand} ${car.model} (${car.year})`;
+    const message = `Êtes-vous sûr de vouloir supprimer l'annonce "${carName}" ? Cette action est irréversible.`;
+
+    const performDelete = async () => {
+      try {
+        await deleteCar(id);
+        Alert.alert('✅ Supprimée', 'Votre annonce a été supprimée avec succès.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } catch (err) {
+        Alert.alert('Erreur', 'Impossible de supprimer cette annonce. Veuillez réessayer.');
+      }
+    };
+
+    Alert.alert(
+      "Supprimer l'annonce",
+      message,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: performDelete },
+      ]
+    );
   };
 
   const handleShare = async () => {
@@ -346,16 +398,33 @@ export default function CarDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Barre de contact fixe en bas */}
+      {/* Barre d'actions fixe en bas — conditionnelle selon la propriété */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.85}>
-          <Text style={styles.messageButtonIcon}>💬</Text>
-          <Text style={styles.messageButtonText}>Message</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.85}>
-          <Text style={styles.callButtonIcon}>📞</Text>
-          <Text style={styles.callButtonText}>Appeler le vendeur</Text>
-        </TouchableOpacity>
+        {isOwner ? (
+          // Propriétaire : boutons Modifier + Supprimer
+          <>
+            <TouchableOpacity style={styles.ownerEditBtn} onPress={handleEdit} activeOpacity={0.85}>
+              <Text style={styles.ownerEditBtnIcon}>✏️</Text>
+              <Text style={styles.ownerEditBtnText}>Modifier</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ownerDeleteBtn} onPress={handleDelete} activeOpacity={0.85}>
+              <Text style={styles.ownerDeleteBtnIcon}>🗑️</Text>
+              <Text style={styles.ownerDeleteBtnText}>Supprimer</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          // Visiteur : boutons Message + Appeler
+          <>
+            <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.85}>
+              <Text style={styles.messageButtonIcon}>💬</Text>
+              <Text style={styles.messageButtonText}>Message</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.85}>
+              <Text style={styles.callButtonIcon}>📞</Text>
+              <Text style={styles.callButtonText}>Appeler le vendeur</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -716,6 +785,48 @@ const styles = StyleSheet.create({
   callButtonText: {
     fontSize: 14,
     color: '#fff',
+    fontWeight: '700',
+  },
+  // ── Barre propriétaire ──────────────────────────────────────
+  ownerEditBtn: {
+    flex: 1,
+    height: 50,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  ownerEditBtnIcon: {
+    fontSize: 16,
+  },
+  ownerEditBtnText: {
+    fontSize: 14,
+    color: '#1e3a8a',
+    fontWeight: '700',
+  },
+  ownerDeleteBtn: {
+    flex: 1,
+    height: 50,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#fecaca',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginLeft: 12,
+  },
+  ownerDeleteBtnIcon: {
+    fontSize: 16,
+  },
+  ownerDeleteBtnText: {
+    fontSize: 14,
+    color: '#ef4444',
     fontWeight: '700',
   },
 });
