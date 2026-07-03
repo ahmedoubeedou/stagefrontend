@@ -1,4 +1,6 @@
 import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { Car } from 'lucide-react-native';
+
 import {
   View,
   Text,
@@ -62,6 +64,9 @@ export default function DashboardScreen() {
         fuel: car.fuel || 'Essence',
         transmission: car.transmission || 'Automatique',
         description: car.description || '',
+        location: car.location || '',
+        phone: car.contact_phone || car.seller?.phone || '',
+        status: car.status || 'disponible',
       },
     });
   };
@@ -225,6 +230,24 @@ export default function DashboardScreen() {
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
               <View style={styles.cardContainer}>
+                {/* En-tête de statut */}
+                <View style={styles.statusHeaderRow}>
+                  <Text style={styles.statusHeaderLabel}>Statut de l'annonce :</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    item.status === 'disponible' ? styles.statusDisponible :
+                    item.status === 'vendue' ? styles.statusVendue : styles.statusMasquee
+                  ]}>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      item.status === 'disponible' ? styles.statusDisponibleText :
+                      item.status === 'vendue' ? styles.statusVendueText : styles.statusMasqueeText
+                    ]}>
+                      {item.status === 'disponible' ? '● Disponible' :
+                       item.status === 'vendue' ? '● Vendue' : '● Masquée'}
+                    </Text>
+                  </View>
+                </View>
                 <CarCard car={item} onPress={() => router.push(`/(public)/car/${item.id}`)} />
                 <View style={styles.actionOverlay}>
                   <TouchableOpacity
@@ -251,7 +274,7 @@ export default function DashboardScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>🚗</Text>
+                <Text style={styles.emptyIcon}> <Car size={36} color="#123" /></Text>
                 <Text style={styles.emptyTitle}>Aucune annonce publiée</Text>
                 <Text style={styles.emptySub}>
                   Commencez par publier votre premier véhicule sur le marché !
@@ -540,5 +563,49 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  statusHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  statusHeaderLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4b5563',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusDisponible: {
+    backgroundColor: '#ecfdf5',
+  },
+  statusDisponibleText: {
+    color: '#059669',
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  statusVendue: {
+    backgroundColor: '#fef2f2',
+  },
+  statusVendueText: {
+    color: '#dc2626',
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  statusMasquee: {
+    backgroundColor: '#f3f4f6',
+  },
+  statusMasqueeText: {
+    color: '#4b5563',
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

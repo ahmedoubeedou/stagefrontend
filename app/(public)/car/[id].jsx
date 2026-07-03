@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
   ActivityIndicator, Linking, Dimensions, SafeAreaView, Alert, Share,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { getCarById, addFavorite, removeFavorite, isFavorite, deleteCar } from '../../../src/services/api';
 import { formatPrice, formatMileage, formatDate, FUEL_TYPE_MAP, TRANSMISSION_MAP } from '../../../src/utils/helpers';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -45,36 +46,48 @@ export default function CarDetailScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [imageError, setImageError] = useState({});
 
   // Vérification de propriété : est-ce que l'utilisateur connecté est le vendeur ?
   const isOwner = user && car ? Number(user.id) === Number(car.user_id) : false;
 
-  useEffect(() => {
-    async function loadCar() {
-      try {
-        const response = await getCarById(id);
-        if (response.data?.status === 'success') {
-          setCar(response.data.data);
-        }
-      } catch (error) {
-        Alert.alert(
-          'Véhicule introuvable',
-          'Impossible de charger les détails de cette annonce.',
-          [{ text: 'Retour', onPress: () => router.back() }]
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-    if (id) loadCar();
-  }, [id]);
+  // TÂCHE 1 : useFocusEffect pour recharger les données à chaque retour sur la page
+  // Cela garantit que le statut mis à jour depuis l'écran de modification s'affiche correctement.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-  useEffect(() => {
-    if (user && id) {
-      isFavorite(id).then(setFavorited).catch(() => {});
-    }
-  }, [user, id]);
+      async function loadCar() {
+        setLoading(true);
+        try {
+          const response = await getCarById(id);
+          if (active && response.data?.status === 'success') {
+            setCar(response.data.data);
+          }
+        } catch (error) {
+          if (active) {
+            Alert.alert(
+              'Véhicule introuvable',
+              'Impossible de charger les détails de cette annonce.',
+              [{ text: 'Retour', onPress: () => router.back() }]
+            );
+          }
+        } finally {
+          if (active) setLoading(false);
+        }
+      }
+
+      async function loadFavorite() {
+        if (user && id) {
+          try { const fav = await isFavorite(id); if (active) setFavorited(fav); } catch (_) {}
+        }
+      }
+
+      if (id) { loadCar(); loadFavorite(); }
+      return () => { active = false; };
+    }, [id, user])
+  );
 
   const handleScroll = (event) => {
     const slideIndex = Math.round(
@@ -153,23 +166,27 @@ export default function CarDetailScreen() {
         description: car.description || '',
         location: car.location || '',
         phone: car.contact_phone || '',
+        status: car.status || 'disponible',
       },
     });
   };
 
-  // Suppression de l'annonce (propriétaire uniquement)
+  // TÂCHE 2 : Bouton Supprimer fonctionnel avec confirmation Alert + état de chargement
   const handleDelete = () => {
     const carName = `${car.brand} ${car.model} (${car.year})`;
     const message = `Êtes-vous sûr de vouloir supprimer l'annonce "${carName}" ? Cette action est irréversible.`;
 
     const performDelete = async () => {
+      setDeleting(true);
       try {
         await deleteCar(id);
-        Alert.alert('✅ Supprimée', 'Votre annonce a été supprimée avec succès.', [
-          { text: 'OK', onPress: () => router.back() },
+        Alert.alert('✅ Annonce supprimée', 'Votre annonce a été supprimée avec succès.', [
+          { text: 'OK', onPress: () => router.replace('/(private)/dashboard') },
         ]);
       } catch (err) {
         Alert.alert('Erreur', 'Impossible de supprimer cette annonce. Veuillez réessayer.');
+      } finally {
+        setDeleting(false);
       }
     };
 
@@ -252,13 +269,21 @@ export default function CarDetailScreen() {
   const fuelValue = car.fuel || car.fuel_type || 'Essence';
   const transmissionValue = car.transmission || 'automatic';
 
+  // TÂCHE 1 : Statut dynamique depuis les données de l'API (plus de valeur hardcodée)
+  const statusConfig = {
+    disponible: { label: 'Disponible', color: '#059669', bg: '#ecfdf5' },
+    vendue: { label: 'Vendue', color: '#dc2626', bg: '#fef2f2' },
+    masquée: { label: 'Masquée', color: '#6b7280', bg: '#f3f4f6' },
+  };
+  const statusInfo = statusConfig[car.status] || statusConfig['disponible'];
+
   const specs = [
     { label: 'Année', value: String(car.year), icon: '📅' },
     { label: 'Kilométrage', value: formatMileage(car.mileage), icon: '🛣️' },
     { label: 'Carburant', value: FUEL_TYPE_MAP[fuelValue] || fuelValue, icon: '⛽' },
     { label: 'Transmission', value: TRANSMISSION_MAP[transmissionValue] || 'Automatique', icon: '⚙️' },
     { label: 'Couleur', value: car.color || 'N/A', icon: '🎨' },
-    { label: 'Disponibilité', value: 'Disponible', icon: '✅', highlight: true },
+    { label: 'Statut', value: statusInfo.label, icon: '✅', statusColor: statusInfo.color, statusBg: statusInfo.bg },
   ];
 
   return (
@@ -326,7 +351,7 @@ export default function CarDetailScreen() {
 
           {/* Bouton partage flottant */}
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
-            <Text style={styles.shareBtnText}>↑</Text>
+            <Ionicons name="share-outline" size={20} color="#374151" />
           </TouchableOpacity>
 
           {/* Badge vidéo */}
@@ -356,11 +381,11 @@ export default function CarDetailScreen() {
           <Text style={styles.sectionTitle}>🔧 Caractéristiques</Text>
           <View style={styles.grid}>
             {specs.map((spec, i) => (
-              <View key={i} style={styles.gridCell}>
+              <View key={i} style={[styles.gridCell, spec.statusBg ? { backgroundColor: spec.statusBg } : null]}>
                 <Text style={styles.gridCellLabel}>
                   {spec.icon} {spec.label}
                 </Text>
-                <Text style={[styles.gridCellValue, spec.highlight && styles.gridCellValueHighlight]}>
+                <Text style={[styles.gridCellValue, spec.statusColor ? { color: spec.statusColor } : null]}>
                   {spec.value}
                 </Text>
               </View>
@@ -395,7 +420,7 @@ export default function CarDetailScreen() {
                   </View>
                   <View style={styles.sellerInfo}>
                     <Text style={styles.sellerName}>{car.seller?.name || 'Vendeur'}</Text>
-                    <Text style={styles.sellerSubtitle}>Vendeur vérifié • {car.location}</Text>
+                    <Text style={styles.sellerSubtitle}>Vendeur vérifié · {car.location}</Text>
                     {car.seller?.phone && (
                       <Text style={styles.sellerPhone}>📞 {car.seller.phone}</Text>
                     )}
@@ -417,24 +442,37 @@ export default function CarDetailScreen() {
         {isOwner ? (
           // Propriétaire : boutons Modifier + Supprimer
           <>
+            {/* TÂCHE 2 & 4 : Bouton Modifier — solide bleu marine */}
             <TouchableOpacity style={styles.ownerEditBtn} onPress={handleEdit} activeOpacity={0.85}>
-              <Text style={styles.ownerEditBtnIcon}>✏️</Text>
+              <Ionicons name="create-outline" size={18} color="#fff" />
               <Text style={styles.ownerEditBtnText}>Modifier</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.ownerDeleteBtn} onPress={handleDelete} activeOpacity={0.85}>
-              <Text style={styles.ownerDeleteBtnIcon}>🗑️</Text>
-              <Text style={styles.ownerDeleteBtnText}>Supprimer</Text>
+            {/* TÂCHE 2 & 4 : Bouton Supprimer — bordure rouge avec loader */}
+            <TouchableOpacity
+              style={[styles.ownerDeleteBtn, deleting && styles.ownerDeleteBtnDisabled]}
+              onPress={handleDelete}
+              activeOpacity={0.85}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color="#dc2626" />
+              ) : (
+                <>
+                  <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                  <Text style={styles.ownerDeleteBtnText}>Supprimer</Text>
+                </>
+              )}
             </TouchableOpacity>
           </>
         ) : (
           // Visiteur : boutons Message + Appeler
           <>
             <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.85}>
-              <Text style={styles.messageButtonIcon}>💬</Text>
+              <Ionicons name="chatbubble-outline" size={16} color="#4b5563" />
               <Text style={styles.messageButtonText}>Message</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.85}>
-              <Text style={styles.callButtonIcon}>📞</Text>
+              <Ionicons name="call" size={16} color="#fff" />
               <Text style={styles.callButtonText}>Appeler le vendeur</Text>
             </TouchableOpacity>
           </>
@@ -640,33 +678,35 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    gap: 12,
+    marginBottom: 28,
   },
   gridCell: {
-    width: '48%',
-    backgroundColor: '#f9fafb',
+    width: '47%',
+    backgroundColor: '#f8faff',
     borderWidth: 1,
-    borderColor: '#f3f4f6',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    borderColor: '#e8edf5',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   gridCellLabel: {
     fontSize: 11,
     color: '#9ca3af',
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   gridCellValue: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#1f2937',
     fontWeight: '700',
-  },
-  gridCellValueHighlight: {
-    color: '#059669',
   },
   description: {
     fontSize: 14,
@@ -817,46 +857,45 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  // ── Barre propriétaire ──────────────────────────────────────
+  // ── TÂCHE 4 : Barre propriétaire redessinée ──────────────────────────────────────
   ownerEditBtn: {
     flex: 1,
-    height: 50,
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#bfdbfe',
+    height: 52,
+    backgroundColor: '#1e3a8a',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6,
-  },
-  ownerEditBtnIcon: {
-    fontSize: 16,
+    gap: 8,
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   ownerEditBtnText: {
-    fontSize: 14,
-    color: '#1e3a8a',
+    fontSize: 15,
+    color: '#fff',
     fontWeight: '700',
   },
   ownerDeleteBtn: {
     flex: 1,
-    height: 50,
-    backgroundColor: '#fef2f2',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#fecaca',
+    height: 52,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#dc2626',
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6,
-    marginLeft: 12,
+    gap: 8,
   },
-  ownerDeleteBtnIcon: {
-    fontSize: 16,
+  ownerDeleteBtnDisabled: {
+    opacity: 0.5,
   },
   ownerDeleteBtnText: {
-    fontSize: 14,
-    color: '#ef4444',
+    fontSize: 15,
+    color: '#dc2626',
     fontWeight: '700',
   },
 });

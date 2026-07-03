@@ -1,8 +1,8 @@
 import React, { useContext, useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
-import { ActivityIndicator, View, StyleSheet, StatusBar } from 'react-native';
-
+import { ActivityIndicator, View, StyleSheet, StatusBar ,Text } from 'react-native';
+import { Car } from 'lucide-react-native';
 function NavigationLayout() {
   const { user, isLoading } = useContext(AuthContext);
   const segments = useSegments();
@@ -36,7 +36,17 @@ function NavigationLayout() {
           contentStyle: { backgroundColor: '#f9fafb' },
         }}
       >
-        <Stack.Screen name="(public)/index" options={{ title: '🚗 Marché Auto' }} />
+     <Stack.Screen
+  name="(public)/index"
+  options={{
+   headerTitle: () => (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Car size={36} color="#123" />
+        <Text style={{ fontSize: 17, fontWeight: '600' }}>Marché Auto</Text>
+      </View>
+    ),
+  }}
+/>
         <Stack.Screen name="(public)/car/[id]" options={{ title: 'Détail du véhicule' }} />
         <Stack.Screen name="(auth)/login" options={{ title: 'Connexion', headerBackVisible: false }} />
         <Stack.Screen name="(auth)/register" options={{ title: 'Inscription', headerBackVisible: false }} />

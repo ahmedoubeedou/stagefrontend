@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { Car } from 'lucide-react-native';
 import {
   View,
   Text,
@@ -56,7 +57,7 @@ export default function LoginScreen() {
           {/* En-tête */}
           <View style={styles.headerBlock}>
             <View style={styles.logoContainer}>
-              <Text style={styles.logoEmoji}>🚗</Text>
+              <Text style={styles.logoEmoji}> <Car size={36} color="#123" /></Text>
             </View>
             <Text style={styles.title}>Bienvenue</Text>
             <Text style={styles.subtitle}>

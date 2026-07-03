@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getCars } from '../../../src/services/api';
+import { getCars, getSellerProfile } from '../../../src/services/api';
 import CarCard from '../../../src/components/CarCard';
 
 /**
@@ -31,35 +31,18 @@ export default function SellerProfileScreen() {
   const [error, setError]     = useState(null);
 
   /**
-   * Charge les voitures du vendeur via GET /api/cars?user_id={id}
+   * Charge le profil du vendeur et ses annonces via GET /api/seller/{id}
    */
   const loadSellerCars = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await getCars({ user_id: id });
+      const response = await getSellerProfile(id);
       if (response.data?.status === 'success') {
-        const data = response.data.data ?? [];
-        setCars(data);
-
-        // Extraire les infos du vendeur depuis la première annonce
-        if (data.length > 0) {
-          const firstCar = data[0];
-          setSeller(
-            firstCar.seller ||
-            firstCar.user || {
-              name: `Vendeur #${id}`,
-              id,
-            }
-          );
-        } else {
-          // Si le vendeur n'a pas d'annonces, on met un nom générique ou on récupère les infos
-          setSeller({
-            name: `Vendeur #${id}`,
-            id,
-          });
-        }
+        const sellerData = response.data.data;
+        setSeller(sellerData);
+        setCars(sellerData.cars ?? []);
       }
     } catch (err) {
       setError('Impossible de charger le profil du vendeur.');

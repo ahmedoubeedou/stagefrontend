@@ -28,6 +28,7 @@ export default function AddCarScreen() {
   const [selectedFuel, setSelectedFuel] = useState(params.fuel || 'Essence');
   const [selectedTransmission, setSelectedTransmission] = useState(params.transmission || 'Automatique');
   const [toast, setToast] = useState({ visible: false, message: '' });
+  const [selectedStatus, setSelectedStatus] = useState(params.status || 'disponible');
 
   const {
     control,
@@ -69,6 +70,9 @@ export default function AddCarScreen() {
             }
             if (car.transmission) {
               setSelectedTransmission(TRANSMISSION_MAP[car.transmission] || car.transmission);
+            }
+            if (car.status) {
+              setSelectedStatus(car.status);
             }
             
             // Populate form values in case some parameters are missing in route
@@ -135,6 +139,9 @@ export default function AddCarScreen() {
 
       formData.append('fuel_type', FUEL_TO_BACKEND[selectedFuel] || 'gasoline');
       formData.append('transmission', TRANSMISSION_TO_BACKEND[selectedTransmission] || 'automatic');
+      if (isEditing) {
+        formData.append('status', selectedStatus);
+      }
 
       // Helper: convert a blob/local URI to a File object (needed for web)
       const uriToFile = async (uri, fileName, mimeType) => {
@@ -478,6 +485,29 @@ export default function AddCarScreen() {
               selected={selectedTransmission}
               onSelect={setSelectedTransmission}
             />
+
+            {/* Statut (Uniquement en mode modification) */}
+            {isEditing && (
+              <>
+                <Text style={styles.label}>Statut de l'annonce <Text style={styles.required}>*</Text></Text>
+                <OptionSelector
+                  options={['Disponible', 'Vendue', 'Masquée']}
+                  selected={
+                    selectedStatus === 'disponible' ? 'Disponible' :
+                    selectedStatus === 'vendue' ? 'Vendue' : 'Masquée'
+                  }
+                  onSelect={(opt) => {
+                    const statusVal = opt === 'Disponible' ? 'disponible' : opt === 'Vendue' ? 'vendue' : 'masquée';
+                    setSelectedStatus(statusVal);
+                  }}
+                  icons={{
+                    'Disponible': '✅',
+                    'Vendue': '🤝',
+                    'Masquée': '🔒',
+                  }}
+                />
+              </>
+            )}
 
             {/* Description */}
             <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>

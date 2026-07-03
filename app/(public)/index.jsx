@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { Car } from 'lucide-react-native';
+
 import {
   View,
   Text,
@@ -123,7 +125,7 @@ export default function CarListScreen() {
       <View style={styles.topHeader}>
         <View style={styles.brandInfo}>
           <View style={styles.logoIconWrapper}>
-            <Text style={styles.logoIcon}>🚗</Text>
+            <Car size={36} color="#123" />
           </View>
           <View>
             <Text style={styles.brandTitle}>Marché Auto</Text>

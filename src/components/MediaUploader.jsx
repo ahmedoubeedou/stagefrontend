@@ -18,7 +18,6 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 Mo
 // Types MIME autorisés
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/mov'];
-
 /**
  * Détermine le type MIME à partir de l'URI
  */
